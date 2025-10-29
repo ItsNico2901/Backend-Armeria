@@ -1,0 +1,5 @@
+
+## Ignorar archivos y carpetas comunes
+
+node_modules/
+.env
