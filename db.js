@@ -11,3 +11,12 @@ export const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
 })
+
+pool
+  .getConnection()
+  .then(() => {
+    console.log('Conexión a la base de datos exitosa')
+  })
+  .catch((err) => {
+    console.error('No se pudo conectar a la base de datos:', err)
+  })
