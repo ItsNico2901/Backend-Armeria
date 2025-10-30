@@ -18,10 +18,18 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Credenciales inválidas' })
     }
 
-    res.json({ message: 'Inicio de sesión exitoso' })
+    // Devolvemos datos públicos del usuario (sin campos sensibles)
+    const urow = rows[0]
+    const user = {
+      id: urow.id,
+      username: urow.username,
+      role: urow.role,
+    }
+
+    return res.json({ user })
   } catch (error) {
     console.error('Error al iniciar sesión:', error)
-    res.status(500).json({ message: 'Error interno del servidor' })
+    return res.status(500).json({ message: 'Error interno del servidor' })
   }
 })
 

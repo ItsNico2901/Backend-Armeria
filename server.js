@@ -4,6 +4,7 @@ import cors from 'cors'
 import authRoutes from './routes/auth.routes.js'
 import productsRoutes from './routes/products.routes.js'
 import userRoutes from './routes/users.routes.js'
+import dashboardRoutes from './routes/dashboard.routes.js'
 
 const app = express()
 
@@ -13,6 +14,7 @@ app.use(express.json())
 app.use('/api', authRoutes)
 app.use('/api', productsRoutes)
 app.use('/api', userRoutes)
+app.use('/api', dashboardRoutes)
 
 const PORT = process.env.PORT || 4567
 app.listen(PORT, () => {
