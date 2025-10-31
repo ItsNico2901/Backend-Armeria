@@ -7,23 +7,11 @@ import userRoutes from './routes/users.routes.js'
 
 const app = express()
 
-const ALLOWED_ORIGINS = [
-  'http://localhost:5173',
-  'https://app.nicolavirgilio.cloud',
-  'https://backend-armeria.nicolavirgilio.cloud',
-]
-
 const corsOptions = {
-  origin(origin, callback) {
-    if (!origin) return callback(null, true)
-    if (ALLOWED_ORIGINS.includes('*') || ALLOWED_ORIGINS.includes(origin)) {
-      return callback(null, true)
-    }
-    console.warn('[CORS] Origin no permitido:', origin)
-    return callback(null, false)
-  },
+  // Refleja cualquier origen entrante; permite acceso global.
+  origin: true,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Origin', 'Accept', 'Content-Type', 'Authorization', 'x-role', 'X-Requested-With'],
 }
 
