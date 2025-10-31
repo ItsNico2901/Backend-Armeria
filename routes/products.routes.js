@@ -12,14 +12,23 @@ const TYPE_DB_MAP = {
 }
 
 const ESTADO_DB_MAP = {
-  NUEVO: 'Nuevo',
-  USADO: 'Usado',
-  COLECCION: 'Colección',
+  NUEVO: ['Nuevo'],
+  USADO: ['Usado'],
+  COLECCION: ['Colección', 'Coleccion'],
 }
 
 function toDbValue(value, map) {
   if (!value || typeof value !== 'string') return value
-  return map[value] ?? value
+  const entry = map[value]
+  if (!entry) return value
+  return Array.isArray(entry) ? entry[0] : entry
+}
+
+function resolveEstadoCandidates(value) {
+  if (!value || typeof value !== 'string') return []
+  const entry = ESTADO_DB_MAP[value]
+  if (!entry) return [value]
+  return Array.isArray(entry) ? entry : [entry]
 }
 
 router.get('/productos', roleCheck('ADMIN', 'USER', 'INVITADO'), async (req, res) => {
@@ -41,10 +50,30 @@ router.post('/productos', roleCheck('ADMIN', 'USER'), async (req, res) => {
 
     const { data } = validation
     const dbType = toDbValue(data.type, TYPE_DB_MAP)
-    const dbEstado = toDbValue(data.estado, ESTADO_DB_MAP)
-    const [dbResult] = await pool.query(sqlquery, [data.code, data.name, dbType, data.caliber, data.quantity, dbEstado, data.description])
+    const estadoCandidates = resolveEstadoCandidates(data.estado)
+    let dbResult
+    let usedEstado = null
 
-    res.status(201).json({ msg: 'Producto creado', id: dbResult.insertId, code: data.code, type: data.type, estado: data.estado })
+    for (const candidate of estadoCandidates) {
+      try {
+        ;[dbResult] = await pool.query(sqlquery, [data.code, data.name, dbType, data.caliber, data.quantity, candidate, data.description])
+        usedEstado = candidate
+        break
+      } catch (error) {
+        const message = String(error?.message || '')
+        const isEstadoError = message.includes("Data truncated for column 'estado'")
+        const isLast = estadoCandidates.indexOf(candidate) === estadoCandidates.length - 1
+        if (!isEstadoError || isLast) {
+          throw error
+        }
+        // intenta siguiente candidato
+      }
+    }
+    if (!dbResult) {
+      return res.status(500).json({ msg: 'Error al crear el producto', error: 'No se pudo determinar valor válido para estado' })
+    }
+
+    res.status(201).json({ msg: 'Producto creado', id: dbResult.insertId, code: data.code, type: data.type, estado: data.estado, estadoDb: usedEstado })
   } catch (error) {
     res.status(500).json({ msg: 'Error al crear el producto', error: error.message })
   }
@@ -61,9 +90,24 @@ router.put('/productos/:code', roleCheck('ADMIN', 'USER'), async (req, res) => {
     const { name, type, caliber, quantity, estado, description } = validation.data
     const codeParam = req.params.code ?? validation.data.code
     const dbType = toDbValue(type, TYPE_DB_MAP)
-    const dbEstado = toDbValue(estado, ESTADO_DB_MAP)
-
-    const [dbResult] = await pool.query(sqlquery, [name, dbType, caliber, quantity, dbEstado, description, codeParam])
+    const estadoCandidates = resolveEstadoCandidates(estado)
+    let dbResult
+    for (const candidate of estadoCandidates) {
+      try {
+        ;[dbResult] = await pool.query(sqlquery, [name, dbType, caliber, quantity, candidate, description, codeParam])
+        break
+      } catch (error) {
+        const message = String(error?.message || '')
+        const isEstadoError = message.includes("Data truncated for column 'estado'")
+        const isLast = estadoCandidates.indexOf(candidate) === estadoCandidates.length - 1
+        if (!isEstadoError || isLast) {
+          throw error
+        }
+      }
+    }
+    if (!dbResult) {
+      return res.status(500).json({ msg: 'Error al actualizar el producto', error: 'No se pudo determinar valor válido para estado' })
+    }
     if (dbResult.affectedRows === 0) {
       return res.status(404).json({ msg: 'Producto no encontrado' })
     }
