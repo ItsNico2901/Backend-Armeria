@@ -14,7 +14,7 @@ const TYPE_DB_MAP = {
 const ESTADO_DB_MAP = {
   NUEVO: 'Nuevo',
   USADO: 'Usado',
-  COLECCION: 'Coleccion',
+  COLECCION: 'Colección',
 }
 
 function toDbValue(value, map) {
