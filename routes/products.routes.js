@@ -5,6 +5,23 @@ import { validateProduct, validatePartialProduct } from '../validation/schema.js
 
 const router = Router()
 
+const TYPE_DB_MAP = {
+  FUEGO: 'Fuego',
+  BLANCO: 'Blanco',
+  ELECTRO: 'Electro',
+}
+
+const ESTADO_DB_MAP = {
+  NUEVO: 'Nuevo',
+  USADO: 'Usado',
+  COLECCION: 'Coleccion',
+}
+
+function toDbValue(value, map) {
+  if (!value || typeof value !== 'string') return value
+  return map[value] ?? value
+}
+
 router.get('/productos', roleCheck('ADMIN', 'USER', 'INVITADO'), async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM products')
@@ -23,9 +40,11 @@ router.post('/productos', roleCheck('ADMIN', 'USER'), async (req, res) => {
     }
 
     const { data } = validation
-    const [dbResult] = await pool.query(sqlquery, [data.code, data.name, data.type, data.caliber, data.quantity, data.estado, data.description])
+    const dbType = toDbValue(data.type, TYPE_DB_MAP)
+    const dbEstado = toDbValue(data.estado, ESTADO_DB_MAP)
+    const [dbResult] = await pool.query(sqlquery, [data.code, data.name, dbType, data.caliber, data.quantity, dbEstado, data.description])
 
-    res.status(201).json({ msg: 'Producto creado', id: dbResult.insertId })
+    res.status(201).json({ msg: 'Producto creado', id: dbResult.insertId, code: data.code, type: data.type, estado: data.estado })
   } catch (error) {
     res.status(500).json({ msg: 'Error al crear el producto', error: error.message })
   }
@@ -41,12 +60,14 @@ router.put('/productos/:code', roleCheck('ADMIN', 'USER'), async (req, res) => {
 
     const { name, type, caliber, quantity, estado, description } = validation.data
     const codeParam = req.params.code ?? validation.data.code
+    const dbType = toDbValue(type, TYPE_DB_MAP)
+    const dbEstado = toDbValue(estado, ESTADO_DB_MAP)
 
-    const [dbResult] = await pool.query(sqlquery, [name, type, caliber, quantity, estado, description, codeParam])
+    const [dbResult] = await pool.query(sqlquery, [name, dbType, caliber, quantity, dbEstado, description, codeParam])
     if (dbResult.affectedRows === 0) {
       return res.status(404).json({ msg: 'Producto no encontrado' })
     }
-    res.json({ msg: 'Producto actualizado' })
+    res.json({ msg: 'Producto actualizado', type, estado })
   } catch (error) {
     res.status(500).json({ msg: 'Error al actualizar el producto', error: error.message })
   }

@@ -1,5 +1,10 @@
 import z from 'zod'
 
+function normalizeToUpper(value) {
+  if (typeof value !== 'string') return value
+  return value.trim().toUpperCase()
+}
+
 const loginSchema = z.object({
   username: z.string().min(3),
   password: z.string().min(3),
@@ -15,8 +20,8 @@ const user = z.object({
 const product = z.object({
   code: z.string().min(3),
   name: z.string().min(1),
-  type: z.enum(['FUEGO', 'BLANCO', 'ELECTRO']),
-  estado: z.enum(['NUEVO', 'USADO', 'COLECCION']),
+  type: z.preprocess(normalizeToUpper, z.enum(['FUEGO', 'BLANCO', 'ELECTRO'])),
+  estado: z.preprocess(normalizeToUpper, z.enum(['NUEVO', 'USADO', 'COLECCION'])),
   quantity: z.number().min(0),
   caliber: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
