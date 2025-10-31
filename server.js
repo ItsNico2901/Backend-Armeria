@@ -13,20 +13,23 @@ const ALLOWED_ORIGINS = [
   'https://backend-armeria.nicolavirgilio.cloud',
 ]
 
-app.use((req, res, next) => {
-  const requestOrigin = req.headers.origin
-  if (requestOrigin && (ALLOWED_ORIGINS.includes(requestOrigin) || ALLOWED_ORIGINS.includes('*'))) {
-    res.header('Access-Control-Allow-Origin', requestOrigin)
-  }
-  res.header('Vary', 'Origin')
-  res.header('Access-Control-Allow-Credentials', 'true')
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-role, X-Requested-With')
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204)
-  }
-  next()
-})
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) return callback(null, true)
+    if (ALLOWED_ORIGINS.includes('*') || ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true)
+    }
+    console.warn('[CORS] Origin no permitido:', origin)
+    return callback(null, false)
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'Accept', 'Content-Type', 'Authorization', 'x-role', 'X-Requested-With'],
+}
+
+app.use(cors(corsOptions))
+app.options('*', cors(corsOptions))
+
 app.use(express.json())
 
 app.use('/api', authRoutes)
