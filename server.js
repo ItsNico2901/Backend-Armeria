@@ -9,6 +9,7 @@ const app = express()
 
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
+  'https://app.nicolavirgilio.cloud',
   'https://backend-armeria.nicolavirgilio.cloud',
 ]
 
