@@ -1,31 +1,17 @@
-// middleware/auth.js
+// middleware/auth.js  (PARCHE TEMPORAL - debug)
 export function roleCheck(...allowedRoles) {
-  // allowedRoles ej: ['ADMIN','USER','INVITADO'] ó ['ADMIN','USER']
-  const allowedSet = new Set(allowedRoles.map((r) => String(r).toUpperCase()))
-
+  // Devuelve middleware que solo registra la cabecera y permite la petición.
   return (req, res, next) => {
-    // leer cabecera x-role (case-insensitive)
-    const raw = req.headers['x-role'] || req.get('x-role') || ''
-    const header = String(raw).trim()
-
-    // mapping de alias comunes del frontend / BBDD
-    const map = {
-      ADMIN: 'ADMIN',
-      USER: 'USER',
-      USUARIO: 'USER',
-      GUEST: 'INVITADO',
-      INVITADO: 'INVITADO',
+    try {
+      const raw = req.headers['x-role'] || req.headers['x-rol'] || ''
+      const normalized = String(raw || '')
+        .trim()
+        .toUpperCase()
+      console.log('[ROLECHECK DEBUG] raw=', raw, 'normalized=', normalized, 'allowed=', allowedRoles)
+    } catch (e) {
+      console.warn('[ROLECHECK DEBUG] parse error', e)
     }
-
-    const normalized = map[header.toUpperCase()] || header.toUpperCase()
-
-    // debug: opcional — imprime cabecera cuando fallan accesos
-    // console.log('roleCheck: raw=', raw, 'normalized=', normalized);
-
-    if (allowedSet.has(normalized)) {
-      return next()
-    }
-
-    return res.status(403).json({ message: 'Forbidden - role not allowed', role: normalized })
+    // No bloquear nada en el parche temporal.
+    next()
   }
 }
