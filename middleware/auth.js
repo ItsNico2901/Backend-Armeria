@@ -1,16 +1,31 @@
-export function roleCheck(...rolesAllowed) {
-  const permitidos = rolesAllowed.map((role) => String(role).toUpperCase())
-  return (req, res, next) => {
-    const roleHeader = req.header('x-role') || ''
-    const role = String(roleHeader).toUpperCase()
+// middleware/auth.js
+export function roleCheck(...allowedRoles) {
+  // allowedRoles ej: ['ADMIN','USER','INVITADO'] ó ['ADMIN','USER']
+  const allowedSet = new Set(allowedRoles.map((r) => String(r).toUpperCase()))
 
-    if (!role) {
-      return res.status(401).json({ msg: 'No se proporcionó el role en la cabecera' })
+  return (req, res, next) => {
+    // leer cabecera x-role (case-insensitive)
+    const raw = req.headers['x-role'] || req.get('x-role') || ''
+    const header = String(raw).trim()
+
+    // mapping de alias comunes del frontend / BBDD
+    const map = {
+      ADMIN: 'ADMIN',
+      USER: 'USER',
+      USUARIO: 'USER',
+      GUEST: 'INVITADO',
+      INVITADO: 'INVITADO',
     }
-    if (!permitidos.includes(role)) {
-      return res.status(403).json({ msg: `El role ${role} no tiene permiso para realizar esta acción` })
+
+    const normalized = map[header.toUpperCase()] || header.toUpperCase()
+
+    // debug: opcional — imprime cabecera cuando fallan accesos
+    // console.log('roleCheck: raw=', raw, 'normalized=', normalized);
+
+    if (allowedSet.has(normalized)) {
+      return next()
     }
-    req.role = role
-    next()
+
+    return res.status(403).json({ message: 'Forbidden - role not allowed', role: normalized })
   }
 }
